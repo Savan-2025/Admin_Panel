@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Box, Typography, Button, Paper, Table, TableBody, TableCell, TableHead,
@@ -15,13 +15,11 @@ import API_ENDPOINTS from '../config/apiConfig';
 const CompanyProjectsPage = () => {
   const { id } = useParams(); // companyId
   const navigate = useNavigate();
-  const location = useLocation();
   const [projects, setProjects] = useState([]);
   const [totalProjects, setTotalProjects] = useState(0);
   const [openForm, setOpenForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editProjectId, setEditProjectId] = useState(null);
-
   const [form, setForm] = useState({
     projectName: '',
     budget: '',
@@ -29,9 +27,8 @@ const CompanyProjectsPage = () => {
     category: '',
     subType: '',
     startDate: '',
-    images: null
+    images: []
   });
-
   const token = localStorage.getItem('token');
 
   const fetchProjects = async () => {
@@ -44,6 +41,7 @@ const CompanyProjectsPage = () => {
       setTotalProjects(data.length);
     } catch (err) {
       console.error('Error fetching projects', err);
+      alert('Failed to fetch projects. Please try again.');
     }
   };
 
@@ -56,32 +54,51 @@ const CompanyProjectsPage = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e) => {
+    const files = e.target.files;
+    setForm(prev => ({ ...prev, images: files }));
+  };
+
+  const logFormData = (formData) => {
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
-      Object.keys(form).forEach(key => {
-        if (key === 'images' && form.images) {
-          for (let i = 0; i < form.images.length; i++) {
-            formData.append('images', form.images[i]);
-          }
-        } else {
-          formData.append(key, form[key]);
-        }
-      });
+      // Append text fields
+      formData.append('projectName', form.projectName);
+      formData.append('budget', form.budget);
+      formData.append('city', form.city);
+      formData.append('category', form.category);
+      formData.append('subType', form.subType);
+      formData.append('startDate', form.startDate);
+
+      // Append images if they exist
+      if (form.images && form.images.length > 0) {
+        Array.from(form.images).forEach(image => {
+          formData.append('images', image); // Use the same key 'images' for all files
+        });
+      }
+
+      // Log FormData for debugging
+      logFormData(formData);
 
       let res;
       if (isEditing) {
         res = await axios.put(
           API_ENDPOINTS.PROJECT(editProjectId),
           formData,
-          { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } } // Let axios set Content-Type with boundary
         );
         setProjects(prev => prev.map(p => p._id === editProjectId ? res.data.project : p));
       } else {
         res = await axios.post(
           API_ENDPOINTS.PROJECTS_BY_COMPANY(id),
           formData,
-          { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } } // Let axios set Content-Type with boundary
         );
         setProjects(prev => [res.data.project, ...prev]);
         setTotalProjects(prev => prev + 1);
@@ -97,11 +114,11 @@ const CompanyProjectsPage = () => {
         category: '',
         subType: '',
         startDate: '',
-        images: null
+        images: []
       });
     } catch (err) {
       console.error('Error saving project', err);
-      alert(err.response?.data?.message || 'Could not save project');
+      alert(err.response?.data?.message || 'Could not save project. Please check your inputs and try again.');
     }
   };
 
@@ -117,7 +134,7 @@ const CompanyProjectsPage = () => {
       category: project.category,
       subType: project.subType,
       startDate: project.startDate.split('T')[0],
-      images: null
+      images: []
     });
     setIsEditing(true);
     setEditProjectId(project._id);
@@ -134,15 +151,15 @@ const CompanyProjectsPage = () => {
       setTotalProjects(prev => prev - 1);
     } catch (err) {
       console.error('Error deleting project', err);
-      alert('Could not delete project');
+      alert('Could not delete project. Please try again.');
     }
   };
 
   return (
     <Box p={4}>
       <Box mb={3}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
+        <Button
+          startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/company')}
           sx={{ mb: 2 }}
         >
@@ -153,11 +170,9 @@ const CompanyProjectsPage = () => {
           <Button variant="contained" onClick={() => { setOpenForm(true); setIsEditing(false); }}>Add New Project</Button>
         </Box>
       </Box>
-
       <Paper sx={{ p: 3, mb: 3, width: '250px', textAlign: 'center' }}>
         <Typography variant="h6">{totalProjects} Total Project{totalProjects !== 1 ? 's' : ''}</Typography>
       </Paper>
-
       <Paper>
         <Table>
           <TableHead>
@@ -190,7 +205,6 @@ const CompanyProjectsPage = () => {
           </TableBody>
         </Table>
       </Paper>
-
       <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditing ? 'Edit Project' : 'Add New Project'}</DialogTitle>
         <DialogContent>
@@ -215,7 +229,12 @@ const CompanyProjectsPage = () => {
             </FormControl>
             <TextField label="SubType" name="subType" value={form.subType} onChange={handleChange} fullWidth required />
             <TextField label="Start Date" name="startDate" type="date" InputLabelProps={{ shrink: true }} value={form.startDate} onChange={handleChange} fullWidth required />
-            <input type="file" name="images" multiple onChange={(e) => setForm(prev => ({ ...prev, images: e.target.files }))} />
+            <input
+              type="file"
+              name="images"
+              multiple
+              onChange={handleImageChange}
+            />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
