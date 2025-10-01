@@ -1,15 +1,15 @@
 // src/config/apiConfig.js
 
 export const API_BASE_URL =
-// process.env.REACT_APP_API_BASE_URL || "http://192.168.1.25:5002/api/v1";
+process.env.REACT_APP_API_BASE_URL || "http://192.168.0.122:5002/api/v1";
  //process.env.REACT_APP_API_BASE_URL || "https://realestate.volvrit.org/api/v1";
- process.env.REACT_APP_API_BASE_URL || "https://api.saajra.com/api/v1";
+ //process.env.REACT_APP_API_BASE_URL || "https://api.saajra.com/api/v1";
 // process.env.REACT_APP_API_BASE_URL || "http://192.168.0.122:5002/api/v1";
 
 export const API_BASE_URL_Image =
- //process.env.REACT_APP_API_BASE_URL || "http://192.168.0.122:5002";
+ process.env.REACT_APP_API_BASE_URL || "http://192.168.0.122:5002";
 //process.env.REACT_APP_API_BASE_URL || "https://realestate.volvrit.org";
- process.env.REACT_APP_API_BASE_URL || "https://api.saajra.com";
+// process.env.REACT_APP_API_BASE_URL || "https://api.saajra.com";
 
 
 const API_ENDPOINTS = {
