@@ -23,7 +23,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const PropertyPage = () => {
-  const { id: companyId, projectId } = useParams(); // <-- companyId & projectId from route
+  const { id: companyId, projectId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("property");
   const [properties, setProperties] = useState([]);
@@ -37,12 +37,10 @@ const PropertyPage = () => {
     budget: "",
     propertyArea: "",
     measurementUnit: "sqft",
-    image: "",
+    image: null,
   });
-
   const token = localStorage.getItem("token");
 
-  // Fetch properties (by companyId or projectId)
   const fetchProperties = async () => {
     try {
       const res = await axios.get(
@@ -57,7 +55,6 @@ const PropertyPage = () => {
     }
   };
 
-  // Fetch salespersons
   const fetchSalespersons = async () => {
     try {
       if (!companyId) {
@@ -65,15 +62,10 @@ const PropertyPage = () => {
         setSalespersons([]);
         return;
       }
-
       const url = API_ENDPOINTS.SALESPERSONS_BY_COMPANY(companyId);
-      console.log('Fetching salespersons from:', url);
-      
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log('Salespersons response:', res.data);
       setSalespersons(res.data.salespersons || []);
     } catch (error) {
       console.error("Error fetching salespersons:", error.response?.data || error);
@@ -87,10 +79,8 @@ const PropertyPage = () => {
     } else {
       fetchSalespersons();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, projectId, companyId]);
 
-  // Open create form
   const handleCreate = () => {
     setForm({
       propertyName: "",
@@ -99,13 +89,12 @@ const PropertyPage = () => {
       budget: "",
       propertyArea: "",
       measurementUnit: "sqft",
-      image: "",
+      image: null,
     });
     setEditProperty(null);
     setOpen(true);
   };
 
-  // Edit property
   const handleEdit = (property) => {
     setForm({
       propertyName: property.propertyName,
@@ -114,13 +103,12 @@ const PropertyPage = () => {
       budget: property.budget,
       propertyArea: property.propertyArea,
       measurementUnit: property.measurementUnit,
-      image: property.image,
+      image: null,
     });
     setEditProperty(property);
     setOpen(true);
   };
 
-  // Delete property
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this property?")) {
       try {
@@ -134,7 +122,6 @@ const PropertyPage = () => {
     }
   };
 
-  // View property
   const handleView = async (id) => {
     try {
       const res = await axios.get(API_ENDPOINTS.PROPERTY(id), {
@@ -146,14 +133,29 @@ const PropertyPage = () => {
     }
   };
 
-  // Submit form
   const handleSubmit = async () => {
     try {
+      const formData = new FormData();
+      formData.append("propertyName", form.propertyName);
+      formData.append("location", form.location);
+      formData.append("category", form.category);
+      formData.append("budget", form.budget);
+      formData.append("propertyArea", form.propertyArea);
+      formData.append("measurementUnit", form.measurementUnit);
+      if (form.image) {
+        formData.append("image", form.image);
+      }
+
       if (editProperty) {
         const res = await axios.put(
           API_ENDPOINTS.PROPERTY(editProperty._id),
-          form,
-          { headers: { Authorization: `Bearer ${token}` } }
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
         setProperties(
           properties.map((p) =>
@@ -163,8 +165,13 @@ const PropertyPage = () => {
       } else {
         const res = await axios.post(
           API_ENDPOINTS.PROPERTIES_BY_PROJECT(projectId),
-          { ...form, projectId },
-          { headers: { Authorization: `Bearer ${token}` } }
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
         setProperties([res.data.property, ...properties]);
       }
@@ -177,8 +184,8 @@ const PropertyPage = () => {
   return (
     <Box p={4}>
       <Box mb={3}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
+        <Button
+          startIcon={<ArrowBackIcon />}
           onClick={() => projectId ? navigate(`/companies/${companyId}/projects`) : navigate('/projects')}
           sx={{ mb: 2 }}
         >
@@ -191,8 +198,6 @@ const PropertyPage = () => {
       <Typography variant="body2" color="text.secondary" mb={3}>
         Detailed Overview of the Project / Company
       </Typography>
-
-      {/* Tabs */}
       <Box display="flex" gap={1} mb={2}>
         <Button
           variant={activeTab === "property" ? "contained" : "outlined"}
@@ -214,8 +219,6 @@ const PropertyPage = () => {
           </Box>
         )}
       </Box>
-
-      {/* Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -300,8 +303,6 @@ const PropertyPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* Create/Edit Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editProperty ? "Edit Property" : "New Property"}
@@ -365,12 +366,11 @@ const PropertyPage = () => {
             <MenuItem value="acre">acre</MenuItem>
             <MenuItem value="hectare">hectare</MenuItem>
           </TextField>
-          <TextField
-            fullWidth
-            label="Image"
+          <input
             type="file"
+            accept="image/*"
             onChange={(e) => setForm({ ...form, image: e.target.files[0] })}
-            margin="normal"
+            style={{ marginTop: "16px" }}
           />
         </DialogContent>
         <DialogActions>
