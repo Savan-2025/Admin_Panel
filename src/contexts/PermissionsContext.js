@@ -29,7 +29,7 @@ export const PermissionsProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch('https://realestate.volvrit.org/api/v1/permissions/me', {
+      const response = await fetch('https://api.saajra.com/api/v1/permissions/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
